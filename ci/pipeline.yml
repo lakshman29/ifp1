@@ -1,0 +1,40 @@
+---
+resources:
+- name: source-code
+  type: git
+  source:
+    uri: https://github.com/lakshman29/ifp1.git
+    branch: master
+
+- name: cf
+  type: cf
+  source:
+    api: {{api-value}}
+    username: {{username-value}}
+    password: {{password-value}}
+    organization: {{organization-value}}
+    space: {{space-value}}
+    skip_cert_check: true
+
+jobs:
+- name: build
+  public: true
+  plan:
+  - get: source-code
+    trigger: true
+  - task: sonarqube
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: { repository: "192.168.94.119:4567/def/sonarqube", insecure_registries: [ "192.168.94.119:4567" ] }
+      inputs:
+      - name: source-code
+      run:
+        path: env
+  - task: build
+    file: source-code/ci/build.yml
+  - put: cf
+    params:
+      manifest: source-code/manifest.yml
+    
